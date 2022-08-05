@@ -19,12 +19,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	// send redis PONG to client
-	n, err := conn.Write([]byte("+PONG\r\n"))
-	if err != nil {
-		fmt.Println("Error writing to socket: ", err.Error())
-		os.Exit(1)
-	}
+	fmt.Println("Connection established")
 
-	fmt.Printf("Wrote %d bytes to socket\n", n)
+	for {
+		_, err := conn.Read(nil)
+		if err != nil {
+			fmt.Println("Error reading from connection: ", err.Error())
+			os.Exit(1)
+		}
+
+		// send redis PONG to client
+		n, err := conn.Write([]byte("+PONG\r\n"))
+		if err != nil {
+			fmt.Println("Error writing to socket: ", err.Error())
+			os.Exit(1)
+		}
+
+		fmt.Printf("Wrote %d bytes to socket\n", n)
+	}
 }
