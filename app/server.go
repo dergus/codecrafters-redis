@@ -117,7 +117,7 @@ func parseRequest(str string) (Request, error) {
 		req.args = append(req.args, parts[1])
 	}
 
-	switch req.args[0] {
+	switch strings.ToUpper(req.args[0]) {
 	case "PING":
 		req.cmd = CommandPing
 	case "ECHO":
