@@ -41,7 +41,7 @@ func main() {
 
 func handleConnection(conn net.Conn) {
 	for {
-		var buf []byte
+		buf := make([]byte, 1024)
 		n, err := conn.Read(buf)
 		if err != nil {
 			fmt.Println("Error reading from connection: ", err.Error())
