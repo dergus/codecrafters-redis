@@ -53,6 +53,7 @@ func handleConnection(conn net.Conn) {
 
 		req, err := parseRequest(str)
 		if err != nil {
+			fmt.Println("Error parsing request: ", err.Error())
 			conn.Write([]byte("-ERR invalid request\r\n"))
 			continue
 		}
