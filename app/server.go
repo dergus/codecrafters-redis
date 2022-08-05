@@ -83,35 +83,35 @@ func parseRequest(str string) (Request, error) {
 	req := Request{}
 	parts := strings.Split(str, "\r\n")
 	if len(parts) < 2 {
-		return req, fmt.Errorf("Invalid request: %s", str)
+		return req, fmt.Errorf("request should have at least 2 array elems: %s", str)
 	}
 
 	// parse command
 	if parts[0][0] != '*' {
-		return req, fmt.Errorf("Invalid request: %s", str)
+		return req, fmt.Errorf("request is not a redis array: %s", str)
 	}
 
 	countArgs, err := strconv.Atoi(parts[0][1:])
 	if err != nil {
-		return req, fmt.Errorf("Invalid request: %s", str)
+		return req, fmt.Errorf("can't convert to int len of args: %s", str)
 	}
 
 	if len(parts) != countArgs+1 {
-		return req, fmt.Errorf("Invalid request: %s", str)
+		return req, fmt.Errorf("wrong len of args: %s", str)
 	}
 
 	for _, p := range parts[1:] {
 		if p[0] != '$' {
-			return req, fmt.Errorf("Invalid request: %s", str)
+			return req, fmt.Errorf("request is not a redis bulk string: %s", str)
 		}
 
 		countBytes, err := strconv.Atoi(p[1:])
 		if err != nil {
-			return req, fmt.Errorf("Invalid request: %s", str)
+			return req, fmt.Errorf("can't convert to int len of str: %s", str)
 		}
 
 		if len(parts) != countBytes+1 {
-			return req, fmt.Errorf("Invalid request: %s", str)
+			return req, fmt.Errorf("len of args is invalid: %s", str)
 		}
 
 		req.args = append(req.args, parts[1])
@@ -123,7 +123,7 @@ func parseRequest(str string) (Request, error) {
 	case "ECHO":
 		req.cmd = CommandEcho
 	default:
-		return req, fmt.Errorf("Invalid request: %s", str)
+		return req, fmt.Errorf("cmd is unknown: %s", str)
 	}
 
 	return req, nil
