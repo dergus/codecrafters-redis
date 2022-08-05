@@ -13,9 +13,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	_, err = l.Accept()
+	conn, err := l.Accept()
 	if err != nil {
 		fmt.Println("Error accepting connection: ", err.Error())
 		os.Exit(1)
 	}
+
+	// send redis PONG to client
+	n, err := conn.Write([]byte("+PONG\r\n"))
+	if err != nil {
+		fmt.Println("Error writing to socket: ", err.Error())
+		os.Exit(1)
+	}
+
+	fmt.Printf("Wrote %d bytes to socket\n", n)
 }
