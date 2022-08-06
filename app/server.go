@@ -102,6 +102,7 @@ func handleConnection(conn net.Conn) {
 			resp = []byte(string(msg) + "\r\n")
 		case CommandSet:
 			var expires int64
+		LOOP:
 			for i, arg := range req.args[3:] {
 				switch strings.ToUpper(string(arg)) {
 				case "PX":
@@ -109,9 +110,10 @@ func handleConnection(conn net.Conn) {
 					if err != nil {
 						resp = []byte("-ERR invalid expires\r\n")
 					}
-					break
+					break LOOP
 				default:
 					resp = []byte("-ERR invalid argument\r\n")
+					break LOOP
 				}
 			}
 
