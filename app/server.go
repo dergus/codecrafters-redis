@@ -93,6 +93,8 @@ func handleConnection(conn net.Conn) {
 
 		store.gc()
 
+		fmt.Println("store: ", store.data)
+
 		var resp []byte
 		switch req.cmd {
 		case CommandPing:
