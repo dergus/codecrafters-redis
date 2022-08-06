@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"strconv"
@@ -17,7 +19,7 @@ const (
 
 type Request struct {
 	cmd  Command
-	args []string
+	args [][]byte
 }
 
 func main() {
@@ -41,17 +43,7 @@ func main() {
 
 func handleConnection(conn net.Conn) {
 	for {
-		buf := make([]byte, 1024)
-		n, err := conn.Read(buf)
-		if err != nil {
-			fmt.Println("Error reading from connection: ", err.Error())
-			os.Exit(1)
-		}
-
-		str := string(buf[:n])
-		fmt.Println("Received: ", str)
-
-		req, err := parseRequest(str)
+		req, err := parseRequest(conn)
 		if err != nil {
 			fmt.Println("Error parsing request: ", err.Error())
 			conn.Write([]byte("-ERR invalid request\r\n"))
@@ -63,13 +55,14 @@ func handleConnection(conn net.Conn) {
 		case CommandPing:
 			resp = []byte("+PONG\r\n")
 		case CommandEcho:
-			resp = []byte("+" + strings.Join(req.args, " ") + "\r\n")
+			msg := append([]byte("+"), req.args[1]...)
+			resp = []byte(string(msg) + "\r\n")
 		default:
 			resp = []byte("-ERR invalid request\r\n")
 		}
 
 		// send redis PONG to client
-		n, err = conn.Write(resp)
+		n, err := conn.Write(resp)
 		if err != nil {
 			fmt.Println("Error writing to socket: ", err.Error())
 			os.Exit(1)
@@ -79,51 +72,61 @@ func handleConnection(conn net.Conn) {
 	}
 }
 
-func parseRequest(str string) (Request, error) {
+func parseRequest(r io.Reader) (Request, error) {
 	req := Request{}
-	parts := strings.Split(str, "\r\n")
-	if len(parts) < 2 {
-		return req, fmt.Errorf("request should have at least 2 array elems: %s", str)
+	scanner := bufio.NewScanner(r)
+	if !scanner.Scan() {
+		return req, fmt.Errorf("empty request")
 	}
 
-	// parse command
-	if parts[0][0] != '*' {
-		return req, fmt.Errorf("request is not a redis array: %s", str)
+	arrDecl := scanner.Text()
+	if arrDecl != "*" {
+		return req, fmt.Errorf("Expected *, got %s", arrDecl)
 	}
 
-	countArgs, err := strconv.Atoi(parts[0][1:])
+	numArgs, err := strconv.Atoi(arrDecl[1:])
 	if err != nil {
-		return req, fmt.Errorf("can't convert to int len of args: %s", str)
+		return req, fmt.Errorf("Error parsing number of arguments: %s", err.Error())
 	}
 
-	if len(parts) != countArgs+1 {
-		return req, fmt.Errorf("wrong len of args: %s", str)
-	}
-
-	for _, p := range parts[1:] {
-		if p[0] != '$' {
-			return req, fmt.Errorf("request is not a redis bulk string: %s", str)
+	for i := 0; i < numArgs; i++ {
+		if !scanner.Scan() {
+			return req, fmt.Errorf("Error reading argument %d", i)
 		}
 
-		countBytes, err := strconv.Atoi(p[1:])
+		strLenDecl := scanner.Text()
+		if strLenDecl != "$" {
+			return req, fmt.Errorf("Expected $, got %s", strLenDecl)
+		}
+
+		strLen, err := strconv.Atoi(strLenDecl[1:])
 		if err != nil {
-			return req, fmt.Errorf("can't convert to int len of str: %s", str)
+			return req, fmt.Errorf("Error parsing string length: %s", err.Error())
 		}
 
-		if len(parts) != countBytes+1 {
-			return req, fmt.Errorf("len of args is invalid: %s", str)
+		if !scanner.Scan() {
+			return req, fmt.Errorf("Error reading argument %d", i)
 		}
 
-		req.args = append(req.args, parts[1])
+		arg := scanner.Bytes()
+		if len(arg) != strLen {
+			return req, fmt.Errorf("Invalid string length for argument %d", i)
+		}
+
+		req.args = append(req.args, arg)
 	}
 
-	switch strings.ToUpper(req.args[0]) {
+	if err := scanner.Err(); err != nil {
+		return req, fmt.Errorf("Error reading request: %s", err.Error())
+	}
+
+	switch strings.ToUpper(string(req.args[0])) {
 	case "PING":
 		req.cmd = CommandPing
 	case "ECHO":
 		req.cmd = CommandEcho
 	default:
-		return req, fmt.Errorf("cmd is unknown: %s", str)
+		return req, fmt.Errorf("Invalid command: %s", req.args[0])
 	}
 
 	return req, nil
