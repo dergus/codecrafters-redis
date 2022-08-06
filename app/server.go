@@ -70,8 +70,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	go store.gc()
-
 	for {
 		conn, err := l.Accept()
 		if err != nil {
@@ -92,6 +90,8 @@ func handleConnection(conn net.Conn) {
 			conn.Write([]byte("-ERR invalid request\r\n"))
 			continue
 		}
+
+		store.gc()
 
 		var resp []byte
 		switch req.cmd {
