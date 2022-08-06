@@ -107,6 +107,7 @@ func handleConnection(conn net.Conn) {
 				switch strings.ToUpper(string(arg)) {
 				case "PX":
 					expires, err = strconv.ParseInt(string(req.args[i+4]), 10, 64)
+					fmt.Println("expires: ", expires)
 					if err != nil {
 						fmt.Printf("Error parsing expiration: %s\n", err.Error())
 						resp = []byte("-ERR invalid expires\r\n")
