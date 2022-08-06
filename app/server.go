@@ -80,7 +80,7 @@ func parseRequest(r io.Reader) (Request, error) {
 	}
 
 	arrDecl := scanner.Text()
-	if arrDecl != "*" {
+	if arrDecl[0] != '*' {
 		return req, fmt.Errorf("Expected *, got %s", arrDecl)
 	}
 
@@ -95,7 +95,7 @@ func parseRequest(r io.Reader) (Request, error) {
 		}
 
 		strLenDecl := scanner.Text()
-		if strLenDecl != "$" {
+		if strLenDecl[0] != '$' {
 			return req, fmt.Errorf("Expected $, got %s", strLenDecl)
 		}
 
