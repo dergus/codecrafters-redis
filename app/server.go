@@ -93,8 +93,6 @@ func handleConnection(conn net.Conn) {
 
 		store.gc()
 
-		fmt.Println("store: ", store.data)
-
 		var resp []byte
 		switch req.cmd {
 		case CommandPing:
@@ -108,8 +106,9 @@ func handleConnection(conn net.Conn) {
 			for i, arg := range req.args[3:] {
 				switch strings.ToUpper(string(arg)) {
 				case "PX":
-					expires, err = strconv.ParseInt(string(req.args[i+4]), 10, 64)
-					fmt.Println("expires: ", expires)
+					ttl, err := strconv.ParseInt(string(req.args[i+4]), 10, 64)
+					expires = nowUnixMilli() + ttl
+					fmt.Println("ttl: ", ttl)
 					if err != nil {
 						fmt.Printf("Error parsing expiration: %s\n", err.Error())
 						resp = []byte("-ERR invalid expires\r\n")
