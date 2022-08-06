@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type Command string
@@ -15,12 +16,17 @@ type Command string
 const (
 	CommandPing Command = "PING"
 	CommandEcho Command = "ECHO"
+	CommandSet  Command = "SET"
+	CommandGet  Command = "GET"
 )
 
 type Request struct {
 	cmd  Command
 	args [][]byte
 }
+
+var db = make(map[string][]byte)
+var mu = &sync.RWMutex{}
 
 func main() {
 	l, err := net.Listen("tcp", "0.0.0.0:6379")
@@ -57,6 +63,16 @@ func handleConnection(conn net.Conn) {
 		case CommandEcho:
 			msg := append([]byte("+"), req.args[1]...)
 			resp = []byte(string(msg) + "\r\n")
+		case CommandSet:
+			set(string(req.args[1]), req.args[2])
+			resp = []byte("+OK\r\n")
+		case CommandGet:
+			val := get(string(req.args[1]))
+			if val == nil {
+				resp = []byte("$-1\r\n")
+			} else {
+				resp = []byte("$" + strconv.Itoa(len(val)) + "\r\n" + string(val) + "\r\n")
+			}
 		default:
 			resp = []byte("-ERR invalid request\r\n")
 		}
@@ -125,9 +141,25 @@ func parseRequest(r io.Reader) (Request, error) {
 		req.cmd = CommandPing
 	case "ECHO":
 		req.cmd = CommandEcho
+	case "SET":
+		req.cmd = CommandSet
+	case "GET":
+		req.cmd = CommandGet
 	default:
 		return req, fmt.Errorf("Invalid command: %s", req.args[0])
 	}
 
 	return req, nil
+}
+
+func set(key string, value []byte) {
+	mu.Lock()
+	defer mu.Unlock()
+	db[key] = value
+}
+
+func get(key string) []byte {
+	mu.RLock()
+	defer mu.RUnlock()
+	return db[key]
 }
