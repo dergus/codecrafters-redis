@@ -104,7 +104,7 @@ func handleConnection(conn net.Conn) {
 			var expires int64
 			for i, arg := range req.args[3:] {
 				switch strings.ToUpper(string(arg)) {
-				case "XP":
+				case "PX":
 					expires, err = strconv.ParseInt(string(req.args[i+1]), 10, 64)
 					if err != nil {
 						resp = []byte("-ERR invalid expires\r\n")
