@@ -108,6 +108,7 @@ func handleConnection(conn net.Conn) {
 				case "PX":
 					expires, err = strconv.ParseInt(string(req.args[i+1]), 10, 64)
 					if err != nil {
+						fmt.Printf("Error parsing expiration: %s\n", err.Error())
 						resp = []byte("-ERR invalid expires\r\n")
 					}
 					break LOOP
