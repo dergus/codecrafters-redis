@@ -47,7 +47,7 @@ func (s *Store) gc() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for k, v := range s.data {
-		if v.expires > 0 && v.expires < time.Now().UnixMilli() {
+		if v.expires > 0 && v.expires < nowUnixMilli() {
 			delete(s.data, k)
 		}
 	}
@@ -205,4 +205,8 @@ func parseRequest(r io.Reader) (Request, error) {
 	}
 
 	return req, nil
+}
+
+func nowUnixMilli() int64 {
+	return time.Now().UnixNano() / int64(time.Millisecond)
 }
