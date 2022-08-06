@@ -102,7 +102,7 @@ func handleConnection(conn net.Conn) {
 			resp = []byte(string(msg) + "\r\n")
 		case CommandSet:
 			var expires int64
-			for i, arg := range req.args[2:] {
+			for i, arg := range req.args[3:] {
 				switch strings.ToUpper(string(arg)) {
 				case "XP":
 					expires, err = strconv.ParseInt(string(req.args[i+1]), 10, 64)
